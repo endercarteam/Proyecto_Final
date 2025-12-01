@@ -26,6 +26,14 @@ jobs:
           name: Build project
           command: npm run build
       - run:
+          name: Create Sentry release & upload sourcemaps
+          command: |
+            export RELEASE=$(git rev-parse --short HEAD)
+            export VITE_SENTRY_RELEASE=$RELEASE
+            npx @sentry/cli releases new "$RELEASE"
+            npx @sentry/cli releases files "$RELEASE" upload-sourcemaps ./dist --ext map --ext js --rewrite --url-prefix "~/"
+            npx @sentry/cli releases finalize "$RELEASE"
+      - run:
           name: Deploy to S3
           command: |
             aws s3 sync ./dist s3://todobucket33/ --delete
