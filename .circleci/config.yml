@@ -19,20 +19,39 @@ jobs:
     executor: node/default
     steps:
       - checkout
+
+      # Exportar variables necesarias para Sentry ANTES DEL BUILD
+      - run:
+          name: Export Sentry release env vars
+          command: |
+            RELEASE=$(git rev-parse --short HEAD)
+            echo "export VITE_SENTRY_RELEASE=$RELEASE" >> $BASH_ENV
+            echo "export RELEASE=$RELEASE" >> $BASH_ENV
+            source $BASH_ENV
+
       - node/install-packages:
           pkg-manager: npm
+
       - aws-cli/install
+
+      # Build del frontend (ahora usando VITE_SENTRY_RELEASE real)
       - run:
           name: Build project
           command: npm run build
+
+      # Crear release y subir sourcemaps
       - run:
           name: Create Sentry release & upload sourcemaps
           command: |
-            export RELEASE=$(git rev-parse --short HEAD)
-            export VITE_SENTRY_RELEASE=$RELEASE
+            source $BASH_ENV
+            echo "Using release: $RELEASE"
+
             npx @sentry/cli releases new "$RELEASE"
-            npx @sentry/cli releases files "$RELEASE" upload-sourcemaps ./dist --ext map --ext js --rewrite --url-prefix "~/"
+            npx @sentry/cli releases files "$RELEASE" upload-sourcemaps ./dist \
+              --ext map --ext js --rewrite --url-prefix "~/"
             npx @sentry/cli releases finalize "$RELEASE"
+
+      # Deploy a S3
       - run:
           name: Deploy to S3
           command: |
