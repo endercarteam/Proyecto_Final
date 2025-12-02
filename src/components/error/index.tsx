@@ -1,12 +1,13 @@
+import * as Sentry from "@sentry/react";
 
 export default function ErrorButton() {
+  const handleClick = () => {
+    Sentry.captureException(new Error("Prueba: clic detectado en Sentry"));
+  };
+
   return (
-    <button
-      onClick={() => {
-        throw new Error('This is your first error!');
-      }}
-    >
-      Break the world
+    <button onClick={handleClick}>
+      Probar Sentry
     </button>
   );
 }
